@@ -1,3 +1,9 @@
 <?php 
 
-$conn= new mysqli('localhost','root','','opos_db')or die("Could not connect to mysql".mysqli_error($conn));
+$conn = new mysqli('localhost', 'root', '', 'opos_db', 3307);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+?>
