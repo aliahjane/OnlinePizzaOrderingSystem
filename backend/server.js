@@ -28,7 +28,7 @@ app.use(
 // =======================
 const db = mysql.createConnection({
   host: "127.0.0.1",
-  port: 3307,
+  port: 3306,
   user: "root",
   password: "",
   database: "opos_db",
@@ -86,159 +86,169 @@ app.get("/users", (req, res) => {
 });
 
 // =======================
-// USER REGISTRATION
+// GET ALL MOBILE APP USERS
 // =======================
-app.post("/register", (req, res) => {
+app.get("/user_info", (req, res) => {
 
-  let {
-    name,
-    username,
-    password
-  } = req.body;
-
-  if (!name || !username || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "All fields are required"
-    });
-  }
-
-  name = name.trim();
-  username = username.trim();
-  password = password.trim();
-
-  const hashedPassword = md5(password);
-
-  const checkSql = `
-    SELECT id
-    FROM users
-    WHERE username = ?
-  `;
-
-  db.query(checkSql, [username], (checkErr, checkResult) => {
-
-    if (checkErr) {
-      return res.status(500).json({
-        success: false,
-        error: checkErr.message
-      });
-    }
-
-    if (checkResult.length > 0) {
-      return res.json({
-        success: false,
-        message: "Username already exists"
-      });
-    }
-
-    const insertSql = `
-      INSERT INTO users
-      (
-        name,
-        username,
-        password,
-        type
-      )
-      VALUES (?, ?, ?, ?)
+    const sql = `
+        SELECT
+            user_id,
+            first_name,
+            last_name,
+            email,
+            mobile,
+            address
+        FROM user_info
+        ORDER BY user_id DESC
     `;
 
-    db.query(
-      insertSql,
-      [
-        name,
-        username,
-        hashedPassword,
-        2
-      ],
-      (err, result) => {
+    db.query(sql, (err, rows) => {
 
         if (err) {
-          return res.status(500).json({
-            success: false,
-            error: err.message
-          });
+            return res.status(500).json({
+                success: false,
+                error: err.message
+            });
         }
 
         res.json({
-          success: true,
-          message: "Registration successful",
-          user_id: result.insertId
+            success: true,
+            users: rows
         });
 
-      }
-    );
+    });
 
-  });
+});
 
+// =======================
+// USER REGISTRATION
+// =======================
+app.post("/register", (req, res) => {
+    const {
+        first_name,
+        last_name,
+        email,
+        password,
+        mobile,
+        address
+    } = req.body;
+
+    if (
+        !first_name ||
+        !last_name ||
+        !email ||
+        !password ||
+        !mobile ||
+        !address
+    ) {
+        return res.status(400).json({
+            success: false,
+            message: "All fields are required"
+        });
+    }
+
+    const checkSql =
+        "SELECT user_id FROM user_info WHERE email=?";
+
+    db.query(checkSql, [email], (err, rows) => {
+
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                error: err.message
+            });
+        }
+
+        if (rows.length > 0) {
+            return res.json({
+                success: false,
+                message: "Email already exists"
+            });
+        }
+
+        const sql = `
+            INSERT INTO user_info
+            (
+                first_name,
+                last_name,
+                email,
+                password,
+                mobile,
+                address
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        `;
+
+        db.query(
+            sql,
+            [
+                first_name,
+                last_name,
+                email,
+                md5(password),
+                mobile,
+                address
+            ],
+            (err, result) => {
+
+               if (err) {
+                      console.log("REGISTER ERROR:");
+                      console.log(err);
+
+                      return res.status(500).json({
+                          success:false,
+                          error: err.message
+                      });
+                  }
+                res.json({
+                    success: true,
+                    message: "Success",
+                    user_id: result.insertId
+                });
+            }
+        );
+    });
 });
 
 // =======================
 // USER LOGIN
 // =======================
 app.post("/login", (req, res) => {
-
-  let {
-    username,
-    password
-  } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Username and password are required"
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({
+            success: false,
+            message: "Email and password are required"
+        });
+    }
+    const sql =
+        "SELECT * FROM user_info WHERE email=?";
+    db.query(sql, [email], (err, rows) => {
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                error: err.message
+            });
+        }
+        if (rows.length == 0) {
+            return res.json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        const user = rows[0];
+        if (user.password != md5(password)) {
+            return res.json({
+                success: false,
+                message: "Invalid password"
+            });
+        }
+        res.json({
+            success: true,
+            message: "Login successful",
+            user: user
+        });
     });
-  }
-
-  username = username.trim();
-  password = password.trim();
-
-  const hashedPassword = md5(password);
-
-  const sql = `
-    SELECT *
-    FROM users
-    WHERE username = ?
-  `;
-
-  db.query(sql, [username], (err, result) => {
-
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        error: err.message
-      });
-    }
-
-    if (result.length === 0) {
-      return res.json({
-        success: false,
-        message: "User not found"
-      });
-    }
-
-    const user = result[0];
-
-    if (user.password !== hashedPassword) {
-      return res.json({
-        success: false,
-        message: "Invalid password"
-      });
-    }
-
-    res.json({
-      success: true,
-      message: "Login successful",
-
-      user: {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        type: user.type
-      }
-    });
-
-  });
-
 });
 
 // =======================
@@ -318,7 +328,7 @@ app.get("/products", (req, res) => {
       img_path: item.img_path,
 
       image_url:
-        `http://192.168.100.174:3001/assets/img/${item.img_path}`
+        `http://192.168.1.55:3001/assets/img/${item.img_path}`
 
     }));
 
@@ -379,7 +389,7 @@ app.get("/products/category/:id", (req, res) => {
       img_path: item.img_path,
 
       image_url:
-        `http://192.168.100.174:3001/assets/img/${item.img_path}`
+        `http://192.168.1.55:3001/assets/img/${item.img_path}`
 
     }));
 
@@ -581,6 +591,17 @@ app.put("/orders/status/:id", (req, res) => {
 
   });
 
+});
+
+
+// =======================
+// SERVER CHECK
+// =======================
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    message: "API running"
+  });
 });
 
 // =======================

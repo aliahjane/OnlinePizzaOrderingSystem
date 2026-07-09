@@ -3,8 +3,10 @@
 <html lang="en">
     <?php
     session_start();
+    include 'admin/api_check.php';
     include('header.php');
     include('admin/db_connect.php');
+    
 
 	$query = $conn->query("SELECT * FROM system_settings limit 1")->fetch_array();
 	foreach ($query as $key => $value) {

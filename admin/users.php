@@ -1,4 +1,5 @@
 <?php 
+include ('api_check.php');
 include 'db_connect.php';
 ?>
 

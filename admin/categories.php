@@ -1,4 +1,6 @@
-<?php include('db_connect.php');?>
+<?php
+include ('api_check.php');
+include('db_connect.php');?>
 
 <div class="container-fluid py-4">
 	

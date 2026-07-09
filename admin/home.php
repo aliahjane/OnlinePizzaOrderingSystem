@@ -1,4 +1,6 @@
-<?php require_once("./db_connect.php"); ?>
+<?php 
+include 'api_check.php';
+require_once("./db_connect.php"); ?>
 
 <style>
 	/* ========== PREMIUM DASHBOARD DESIGN ========== */

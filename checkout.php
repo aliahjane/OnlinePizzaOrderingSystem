@@ -1,5 +1,7 @@
 <?php
+include 'admin/api_check.php';
 include 'admin/db_connect.php';
+
 // var_dump($_SESSION);
 $chk = $conn->query("SELECT * FROM cart where user_id = {$_SESSION['login_user_id']} ")->num_rows;
 if($chk <= 0){

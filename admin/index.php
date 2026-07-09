@@ -1,4 +1,7 @@
-<?php ob_start(); ?>
+<?php 
+ob_start();
+include 'api_check.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
